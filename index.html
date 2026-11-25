@@ -74,6 +74,9 @@ button.act.ghost{background:transparent;color:var(--ink)}
 button.act:focus-visible{outline:3px solid var(--dauber);outline-offset:2px}
 .status{margin-left:auto;font-family:var(--display);font-size:1.3rem;min-height:1.6em}
 .status.win{color:var(--dauber)}
+.result{background:color-mix(in srgb,var(--card) 70%,transparent);border:1.5px solid var(--rule);border-radius:8px;padding:14px 16px;display:flex;flex-direction:column;gap:8px}
+.result pre{margin:0;font-family:var(--mono);font-size:.95rem;line-height:1.35;white-space:pre-wrap;overflow-wrap:anywhere;user-select:all}
+.result .note{color:var(--muted);font-size:.86rem}
 section h2{font-family:var(--display);font-weight:400;font-size:1.5rem;margin:0 0 4px}
 section p{margin:0 0 14px;color:var(--muted);max-width:62ch}
 .tape{list-style:none;margin:0;padding:0;display:flex;flex-direction:column}
@@ -102,7 +105,13 @@ footer{color:var(--muted);font-size:.86rem;border-top:1px solid var(--rule);padd
   <div class="bar">
     <button class="act" id="new" type="button">Deal a new card</button>
     <button class="act ghost" id="clear" type="button">Clear marks</button>
+    <button class="act ghost" id="share" type="button">Share result</button>
     <div class="status" id="status" role="status" aria-live="polite"></div>
+  </div>
+
+  <div class="result" id="result" hidden>
+    <pre id="resultText"></pre>
+    <div class="note" id="resultNote" role="status" aria-live="polite"></div>
   </div>
 
   <section>
@@ -167,7 +176,7 @@ function deal(){
   for(let i=idx.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [idx[i],idx[j]]=[idx[j],idx[i]]; }
   const pick = idx.slice(0,24);
   pick.splice(12,0,-1);
-  state = { order: pick, marks: pick.map(i=>i===-1) };
+  state = { order: pick, marks: pick.map(i=>i===-1), start: 0, won: 0 };
 }
 
 const LINES = (()=>{ const L=[]; for(let r=0;r<5;r++) L.push([0,1,2,3,4].map(c=>r*5+c)); for(let c=0;c<5;c++) L.push([0,1,2,3,4].map(r=>r*5+c)); L.push([0,6,12,18,24]); L.push([4,8,12,16,20]); return L; })();
@@ -182,7 +191,7 @@ function render(){
     if(pi===-1){ p.textContent = FREE[0]; n.textContent = FREE[1]; }
     else { p.textContent = POOL[pi][0]; n.textContent = POOL[pi][1] + '/' + TOTAL; }
     b.append(p,n);
-    b.addEventListener('click', ()=>{ if(pi===-1) return; state.marks[k] = !state.marks[k]; save(); paint(); });
+    b.addEventListener('click', ()=>{ if(pi===-1) return; state.marks[k] = !state.marks[k]; if(state.marks[k] && !state.start) state.start = Date.now(); save(); paint(); });
     grid.append(b);
   });
   paint();
@@ -194,12 +203,46 @@ function paint(){
   LINES.forEach(l=>{ if(l.every(i=>state.marks[i])) l.forEach(i=>won.add(i)); });
   cells.forEach((c,i)=>{ c.classList.toggle('on', !!state.marks[i]); c.classList.toggle('line', won.has(i)); c.setAttribute('aria-pressed', state.marks[i] ? 'true':'false'); });
   const count = state.marks.filter(Boolean).length - 1;
+  if(won.size && !state.won){ state.won = Date.now(); save(); }
+  if(!won.size && state.won){ state.won = 0; save(); }
   if(won.size){ statusEl.textContent = 'BINGO. Peace out.'; statusEl.className='status win'; }
   else { statusEl.textContent = count ? count + ' marked' : ''; statusEl.className='status'; }
 }
 
-document.getElementById('new').addEventListener('click', ()=>{ deal(); save(); render(); });
-document.getElementById('clear').addEventListener('click', ()=>{ state.marks = state.order.map(i=>i===-1); save(); paint(); });
+document.getElementById('new').addEventListener('click', ()=>{ deal(); save(); render(); document.getElementById('result').hidden = true; });
+document.getElementById('clear').addEventListener('click', ()=>{ state.marks = state.order.map(i=>i===-1); state.start = 0; state.won = 0; save(); paint(); document.getElementById('result').hidden = true; });
+
+function resultText(){
+  const won = new Set(); let line = null;
+  LINES.forEach(l=>{ if(l.every(i=>state.marks[i])){ l.forEach(i=>won.add(i)); if(!line) line = l; } });
+  const count = state.marks.filter(Boolean).length - 1;
+  let head;
+  if(line){
+    const mins = state.start && state.won ? Math.max(1, Math.round((state.won - state.start)/60000)) : 0;
+    head = 'Scott Bingo: BINGO' + (mins ? ' in ' + mins + ' min' : '') + ' with ' + count + ' squares';
+  } else {
+    head = 'Scott Bingo: ' + count + ' of 24 squares, no bingo yet';
+  }
+  const rows = [];
+  for(let r=0;r<5;r++){ let s=''; for(let c=0;c<5;c++){ const i=r*5+c; s += won.has(i) ? '\u{1F7E8}' : state.marks[i] ? '\u{1F7EA}' : '\u2B1C'; } rows.push(s); }
+  const out = [head, ...rows];
+  if(line) out.push('Winning line: ' + line.map(i=> state.order[i]===-1 ? FREE[0] : POOL[state.order[i]][0]).join(' / '));
+  out.push('scottbingo.com');
+  return out.join('\n');
+}
+
+document.getElementById('share').addEventListener('click', async ()=>{
+  const text = resultText();
+  const box = document.getElementById('result'), note = document.getElementById('resultNote');
+  document.getElementById('resultText').textContent = text;
+  box.hidden = false;
+  note.textContent = '';
+  try{
+    if(navigator.share){ await navigator.share({ text }); note.textContent = 'Shared.'; return; }
+  }catch(e){ if(e && e.name === 'AbortError'){ return; } }
+  try{ await navigator.clipboard.writeText(text); note.textContent = 'Copied. Paste it anywhere.'; }
+  catch(e){ note.textContent = 'Tap the text above to select it, then copy.'; }
+});
 
 const tape = document.getElementById('tape');
 POOL.forEach(([p,n,note])=>{
