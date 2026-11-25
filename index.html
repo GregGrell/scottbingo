@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Scott Bingo</title>
+<meta name="description" content="Scott Bingo: an unofficial bingo card for the Pivot podcast. Tap a square each time Scott Galloway says one of his catchphrases. 33 phrases counted across 21 episodes.">
+<link rel="canonical" href="https://scottbingo.com/">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://scottbingo.com/">
+<meta property="og:title" content="Scott Bingo">
+<meta property="og:description" content="An unofficial bingo card for the Pivot podcast. Tap a square each time Scott says the thing.">
+<meta property="og:image" content="https://scottbingo.com/og.png">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='12' fill='%2314213d'/%3E%3Ccircle cx='32' cy='32' r='20' fill='%23e5007d'/%3E%3Ctext x='32' y='43' font-size='30' font-family='Georgia,serif' font-weight='700' text-anchor='middle' fill='white'%3ES%3C/text%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Alfa+Slab+One&family=IBM+Plex+Sans+Condensed:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+/* Layout idea: a bingo-hall card on a table. Printed card stock, S-C-O-T-T column heads, ink-dauber marks. Tally sheet underneath. */
+:root{
+  --table:#dfe5ee;      /* the table the card sits on */
+  --card:#ffffff;       /* card stock */
+  --ink:#14213d;        /* printed navy */
+  --muted:#5b6780;      /* small print */
+  --rule:#c3ccda;       /* grid rules */
+  --dauber:#e5007d;     /* dauber ink */
+  --win:#ffc400;        /* winning line */
+  --display:"Alfa Slab One","Rockwell","Georgia",serif;
+  --body:"IBM Plex Sans Condensed","Arial Narrow","Helvetica Neue",Arial,sans-serif;
+  --mono:"IBM Plex Mono",ui-monospace,Menlo,monospace;
+  color-scheme:light;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --table:#0c1220; --card:#172036; --ink:#eef2f9; --muted:#9aa6bd; --rule:#33405c; --dauber:#ff3d9e; --win:#ffc400;
+    color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --table:#0c1220; --card:#172036; --ink:#eef2f9; --muted:#9aa6bd; --rule:#33405c; --dauber:#ff3d9e; --win:#ffc400;
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{background:var(--table);color:var(--ink);font-family:var(--body);font-size:17px;line-height:1.45;padding:28px 16px 56px}
+body::before{content:"";position:fixed;inset:0;z-index:0;background:url("bg.png") center top/cover no-repeat;opacity:.15;pointer-events:none}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]) body::before{filter:invert(1) grayscale(1) contrast(1.6) brightness(1.15);mix-blend-mode:screen;opacity:.32}}
+:root[data-theme="dark"] body::before{filter:invert(1) grayscale(1) contrast(1.6) brightness(1.15);mix-blend-mode:screen;opacity:.32}
+.wrap{position:relative;z-index:1;max-width:720px;margin:0 auto;display:flex;flex-direction:column;gap:28px}
+header{display:flex;flex-direction:column;gap:8px}
+h1{font-family:var(--display);font-weight:400;font-size:clamp(2.4rem,9vw,4rem);line-height:.95;margin:0;letter-spacing:.01em;text-wrap:balance}
+h1 span{color:var(--dauber)}
+.lede{margin:0;max-width:60ch;color:var(--muted)}
+.card{background:color-mix(in srgb,var(--card) 35%,transparent);border:3px solid var(--ink);border-radius:10px;padding:clamp(8px,2.2vw,16px);display:flex;flex-direction:column;gap:clamp(6px,1.6vw,10px)}
+.heads{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:clamp(4px,1.2vw,8px)}
+.heads div{font-family:var(--display);font-size:clamp(1.6rem,7vw,2.8rem);text-align:center;background:var(--ink);color:var(--card);border-radius:6px;line-height:1.25}
+.grid{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:clamp(4px,1.2vw,8px)}
+.cell{position:relative;aspect-ratio:1/1;min-width:0;border:1.5px solid var(--rule);border-radius:6px;background:transparent;color:var(--ink);font:inherit;padding:4px;cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;text-align:center;overflow:hidden;-webkit-tap-highlight-color:transparent}
+.cell:hover{border-color:var(--ink)}
+.cell:focus-visible{outline:3px solid var(--dauber);outline-offset:2px}
+.cell .p{font-weight:600;font-size:clamp(.62rem,2.5vw,1rem);line-height:1.12;overflow-wrap:anywhere;hyphens:auto;position:relative;z-index:1}
+.cell .n{font-family:var(--mono);font-size:clamp(.5rem,1.7vw,.7rem);color:var(--muted);position:relative;z-index:1}
+.cell::before{content:"";position:absolute;inset:9%;border-radius:50%;background:var(--dauber);opacity:0;transform:scale(.4);transition:opacity .12s,transform .16s cubic-bezier(.3,1.5,.6,1)}
+.cell.on::before{opacity:.34;transform:scale(1)}
+.cell.on{border-color:var(--dauber)}
+.cell.line{background:var(--win);border-color:var(--ink)}
+.cell.line .p,.cell.line .n{color:#14213d}
+.cell.free .p{font-family:var(--mono);font-weight:500}
+@media (prefers-reduced-motion:reduce){.cell::before{transition:none}}
+.bar{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+button.act{font:600 1rem var(--body);padding:9px 16px;border-radius:6px;border:2px solid var(--ink);background:var(--ink);color:var(--card);cursor:pointer}
+button.act.ghost{background:transparent;color:var(--ink)}
+button.act:focus-visible{outline:3px solid var(--dauber);outline-offset:2px}
+.status{margin-left:auto;font-family:var(--display);font-size:1.3rem;min-height:1.6em}
+.status.win{color:var(--dauber)}
+section h2{font-family:var(--display);font-weight:400;font-size:1.5rem;margin:0 0 4px}
+section p{margin:0 0 14px;color:var(--muted);max-width:62ch}
+.tape{list-style:none;margin:0;padding:0;display:flex;flex-direction:column}
+.tape li{display:grid;grid-template-columns:minmax(0,1fr) 92px 2.6em;gap:10px;align-items:center;padding:7px 0;border-top:1px solid var(--rule)}
+.tape .t{min-width:0}
+.tape .t b{font-weight:600}
+.tape .t small{display:block;color:var(--muted);font-size:.86rem}
+.meter{height:8px;background:var(--rule);border-radius:4px;overflow:hidden}
+.meter i{display:block;height:100%;background:var(--dauber)}
+.tape .c{font-family:var(--mono);font-size:.85rem;text-align:right;font-variant-numeric:tabular-nums}
+footer{color:var(--muted);font-size:.86rem;border-top:1px solid var(--rule);padding-top:14px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>Scott <span>Bingo</span></h1>
+    <p class="lede">Put on an episode of Pivot. Tap a square each time Scott says the thing. Five in a row wins. The small number is how many of 21 recent episodes the phrase turned up in.</p>
+  </header>
+
+  <div class="card">
+    <div class="heads" aria-hidden="true"><div>S</div><div>C</div><div>O</div><div>T</div><div>T</div></div>
+    <div class="grid" id="grid"></div>
+  </div>
+
+  <div class="bar">
+    <button class="act" id="new" type="button">Deal a new card</button>
+    <button class="act ghost" id="clear" type="button">Clear marks</button>
+    <div class="status" id="status" role="status" aria-live="polite"></div>
+  </div>
+
+  <section>
+    <h2>The tape</h2>
+    <p>Every phrase in the deck, ranked by how many of the 21 episodes it appeared in. Each card draws 24 of these at random around the free square.</p>
+    <ul class="tape" id="tape"></ul>
+  </section>
+
+  <footer>
+    Counts come from YouTube auto-captions of the 21 most recent uploads on the Pivot channel as of 25 November 2026. Captions do not label speakers, so a few hits belong to Kara or a guest. Unofficial fan parody. Not affiliated with Pivot, Vox Media, Scott Galloway or Kara Swisher.
+  </footer>
+</div>
+
+<script>
+const TOTAL = 21;
+// [phrase on the card, episodes it appeared in, note for the tape]
+const POOL = [
+  ["By the way…", 21, "132 times across the set. The gimme square."],
+  ["Essentially", 18, "71 times."],
+  ["“…in history”", 17, "The biggest, worst or greatest anything in history."],
+  ["First off…", 16, ""],
+  ["Anyways…", 14, "52 times, always with the s."],
+  ["Young men", 14, "46 mentions."],
+  ["Quite frankly", 14, ""],
+  ["I would argue…", 12, ""],
+  ["My prediction is…", 12, ""],
+  ["A ton of money", 11, "Counted as any “a ton of”."],
+  ["Shareholder value", 10, "29 mentions, usually being destroyed."],
+  ["Wealth tax / progressive taxation", 10, ""],
+  ["The reality is…", 9, ""],
+  ["This notion of…", 9, ""],
+  ["A penis joke", 8, "Viagra counts."],
+  ["Calls someone a traitor", 8, ""],
+  ["Idolatry of innovators", 7, "Sometimes idolatry of the dollar."],
+  ["In my view", 7, ""],
+  ["“…times earnings”", 7, "Any valuation multiple."],
+  ["“Distinct of…”", 6, "He means “aside from”."],
+  ["I’ve been on seven public boards", 6, "10 times, sometimes “a bunch of” boards."],
+  ["Have at it", 6, ""],
+  ["Existential threat", 6, ""],
+  ["Hands down", 6, ""],
+  ["I’ve said this over and over", 6, ""],
+  ["“Gangster” as a compliment", 5, ""],
+  ["If you will", 5, ""],
+  ["To a certain extent", 5, ""],
+  ["Power corrupts, and absolute power absolutely corrupts", 4, "The adage ends “corrupts absolutely”."],
+  ["Peace out", 4, "What billionaires do to Florida."],
+  ["Full stop.", 4, ""],
+  ["Here’s the bottom line", 4, ""],
+  ["Stuffing a rabbit in the hat", 3, "The trick is pulling one out."]
+];
+const FREE = ["[clears throat]", "free"];
+
+const grid = document.getElementById('grid'), statusEl = document.getElementById('status');
+let state = { order: [], marks: [] };
+
+function save(){ try{ localStorage.setItem('scottbingo', JSON.stringify(state)); }catch(e){} }
+function load(){ try{ const s = JSON.parse(localStorage.getItem('scottbingo')); if(s && s.order && s.order.length===25 && s.order.every(i=>i===-1 || (i>=0 && i<POOL.length))) return s; }catch(e){} return null; }
+
+function deal(){
+  const idx = POOL.map((_,i)=>i);
+  for(let i=idx.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [idx[i],idx[j]]=[idx[j],idx[i]]; }
+  const pick = idx.slice(0,24);
+  pick.splice(12,0,-1);
+  state = { order: pick, marks: pick.map(i=>i===-1) };
+}
+
+const LINES = (()=>{ const L=[]; for(let r=0;r<5;r++) L.push([0,1,2,3,4].map(c=>r*5+c)); for(let c=0;c<5;c++) L.push([0,1,2,3,4].map(r=>r*5+c)); L.push([0,6,12,18,24]); L.push([4,8,12,16,20]); return L; })();
+
+function render(){
+  grid.innerHTML = '';
+  state.order.forEach((pi, k)=>{
+    const b = document.createElement('button');
+    b.type = 'button'; b.className = 'cell' + (pi===-1 ? ' free' : '');
+    const p = document.createElement('span'); p.className='p';
+    const n = document.createElement('span'); n.className='n';
+    if(pi===-1){ p.textContent = FREE[0]; n.textContent = FREE[1]; }
+    else { p.textContent = POOL[pi][0]; n.textContent = POOL[pi][1] + '/' + TOTAL; }
+    b.append(p,n);
+    b.addEventListener('click', ()=>{ if(pi===-1) return; state.marks[k] = !state.marks[k]; save(); paint(); });
+    grid.append(b);
+  });
+  paint();
+}
+
+function paint(){
+  const cells = [...grid.children];
+  const won = new Set();
+  LINES.forEach(l=>{ if(l.every(i=>state.marks[i])) l.forEach(i=>won.add(i)); });
+  cells.forEach((c,i)=>{ c.classList.toggle('on', !!state.marks[i]); c.classList.toggle('line', won.has(i)); c.setAttribute('aria-pressed', state.marks[i] ? 'true':'false'); });
+  const count = state.marks.filter(Boolean).length - 1;
+  if(won.size){ statusEl.textContent = 'BINGO. Peace out.'; statusEl.className='status win'; }
+  else { statusEl.textContent = count ? count + ' marked' : ''; statusEl.className='status'; }
+}
+
+document.getElementById('new').addEventListener('click', ()=>{ deal(); save(); render(); });
+document.getElementById('clear').addEventListener('click', ()=>{ state.marks = state.order.map(i=>i===-1); save(); paint(); });
+
+const tape = document.getElementById('tape');
+POOL.forEach(([p,n,note])=>{
+  const li = document.createElement('li');
+  const t = document.createElement('div'); t.className='t';
+  const b = document.createElement('b'); b.textContent = p; t.append(b);
+  if(note){ const s = document.createElement('small'); s.textContent = note; t.append(s); }
+  const m = document.createElement('div'); m.className='meter'; const i = document.createElement('i'); i.style.width = (n/TOTAL*100)+'%'; m.append(i);
+  const c = document.createElement('div'); c.className='c'; c.textContent = n + '/' + TOTAL;
+  li.append(t,m,c); tape.append(li);
+});
+
+const saved = load();
+if(saved) state = saved; else { deal(); save(); }
+render();
+</script>
+</body>
+</html>
